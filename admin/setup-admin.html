@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Setup Fix</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Setup Fix</h1>
+        <p>This tool will ensure that <strong>tuhad2003@gmail.com</strong> has admin privileges.</p>
+        
+        <div id="result"></div>
+        
+        <button id="fixAdminBtn">Fix Admin Access</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDuY1EhiKneD7P-6wS7nDdcI1tai0iY_aM",
+            authDomain: "easycall-bd.firebaseapp.com",
+            projectId: "easycall-bd",
+            storageBucket: "easycall-bd.firebasestorage.app",
+            messagingSenderId: "118716206171",
+            appId: "1:118716206171:web:ff4415627abf6ca2e8837e",
+            measurementId: "G-MP1LWS3WJY"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Admin email
+        const adminEmail = "tuhad2003@gmail.com";
+
+        document.getElementById('fixAdminBtn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Working on it...</p>';
+            resultDiv.className = '';
+
+            try {
+                // Try to sign in as admin
+                try {
+                    await signInWithEmailAndPassword(auth, adminEmail, "The End@");
+                    console.log("Admin login successful");
+                } catch (loginError) {
+                    resultDiv.innerHTML = `
+                        <p>Could not log in as admin: ${loginError.message}</p>
+                        <p>Please make sure the admin account exists and the password is correct.</p>
+                    `;
+                    resultDiv.className = 'result error';
+                    return;
+                }
+
+                // Get the current user
+                const user = auth.currentUser;
+                if (!user) {
+                    throw new Error("No user is signed in");
+                }
+
+                // Check if user document exists
+                const userDocRef = doc(db, "users", user.uid);
+                const userDoc = await getDoc(userDocRef);
+
+                if (userDoc.exists()) {
+                    // Update the existing document to ensure admin role
+                    await setDoc(userDocRef, {
+                        email: user.email,
+                        role: "admin",
+                        updatedAt: new Date(),
+                        ...userDoc.data(), // Keep existing data
+                        role: "admin" // Ensure role is admin (overwrite)
+                    });
+                    
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ Admin user updated successfully!</p>
+                        <pre>${JSON.stringify({uid: user.uid, email: user.email, role: "admin"}, null, 2)}</pre>
+                        <p>The user now has admin privileges.</p>
+                        <p>You can now <a href="admin-dashboard.html">go to the admin dashboard</a>.</p>
+                    `;
+                } else {
+                    // Create new user document with admin role
+                    await setDoc(userDocRef, {
+                        email: user.email,
+                        role: "admin",
+                        createdAt: new Date()
+                    });
+                    
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ Admin user created successfully!</p>
+                        <pre>${JSON.stringify({uid: user.uid, email: user.email, role: "admin"}, null, 2)}</pre>
+                        <p>The user now has admin privileges.</p>
+                        <p>You can now <a href="admin-dashboard.html">go to the admin dashboard</a>.</p>
+                    `;
+                }
+                
+                resultDiv.className = 'result success';
+                
+            } catch (error) {
+                console.error("Error fixing admin:", error);
+                resultDiv.innerHTML = `
+                    <p>Error fixing admin: ${error.message}</p>
+                    <p>Please check the console for more details.</p>
+                `;
+                resultDiv.className = 'result error';
+            }
+        });
+    </script>
+</body>
+</html>
